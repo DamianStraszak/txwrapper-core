@@ -37,13 +37,25 @@ async function main(): Promise<void> {
 	// To construct the tx, we need some up-to-date information from the node.
 	// `txwrapper` is offline-only, so does not care how you retrieve this info.
 	// In this tutorial, we simply send RPC requests to the node.
-	const { block } = await rpcToAlephTestnet('chain_getBlock');
-	const blockHash = await rpcToAlephTestnet('chain_getBlockHash');
-	const genesisHash = await rpcToAlephTestnet('chain_getBlockHash', [0]);
-	const metadataRpc = await rpcToAlephTestnet('state_getMetadata');
+
 	const { specVersion, transactionVersion, specName } = await rpcToAlephTestnet(
 		'state_getRuntimeVersion'
 	);
+	const metadataRpc = await rpcToAlephTestnet('state_getMetadata');
+
+	const registry = getRegistry({
+		chainName: '',
+		specName,
+		specVersion,
+		metadataRpc,
+	});
+
+	const { block } = await rpcToAlephTestnet('chain_getBlock');
+	const block_number = registry.createType('BlockNumber', block.header.number).toNumber();
+	const blockHash = await rpcToAlephTestnet('chain_getBlockHash',  [block_number]);
+	const genesisHash = await rpcToAlephTestnet('chain_getBlockHash', [0]);
+
+
 	const nonce = await rpcToAlephTestnet('system_accountNextIndex', [deriveAddress(alice.publicKey, PolkadotSS58Format.aleph)]);
 	console.log(
 		"Alice's nonce:",
@@ -70,12 +82,7 @@ async function main(): Promise<void> {
 	 * });
 	 * ```
 	 */
-	const registry = getRegistry({
-		chainName: '',
-		specName,
-		specVersion,
-		metadataRpc,
-	});
+
 
 	/**
 	 * Now we can create our `balances.transferKeepAlive` unsigned tx. The following
@@ -91,6 +98,8 @@ async function main(): Promise<void> {
 	 *   asCallsOnlyArg: true
 	 * }
 	 */
+
+
 	const unsigned = methods.balances.transferKeepAlive(
 		{
 			value: '10000000000',
@@ -99,9 +108,7 @@ async function main(): Promise<void> {
 		{
 			address: deriveAddress(alice.publicKey, PolkadotSS58Format.aleph),
 			blockHash,
-			blockNumber: registry
-				.createType('BlockNumber', block.header.number)
-				.toNumber(),
+			blockNumber: block_number,
 			// Describe the longevity of a transaction. It represents the validity from the `blockHash` field, in number of blocks. Defaults to 64 blocks.
 			eraPeriod: 64,
 			genesisHash,
