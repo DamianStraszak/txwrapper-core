@@ -16,7 +16,7 @@ import {
 	PolkadotSS58Format,
 } from '@substrate/txwrapper-polkadot';
 
-import { rpcToLocalNode, signWith } from '../../common/util';
+import { rpcToAlephTestnet, signWith } from '../../common/util';
 
 /**
  * Entry point of the script. This script assumes a Polkadot node is running
@@ -30,19 +30,24 @@ async function main(): Promise<void> {
 	const alice = keyring.addFromUri('//Alice', { name: 'Alice' }, 'sr25519');
 	console.log(
 		"Alice's SS58-Encoded Address:",
-		deriveAddress(alice.publicKey, PolkadotSS58Format.polkadot)
+		deriveAddress(alice.publicKey, PolkadotSS58Format.aleph)
 	);
 
 	// Construct a balance transfer transaction offline.
 	// To construct the tx, we need some up-to-date information from the node.
 	// `txwrapper` is offline-only, so does not care how you retrieve this info.
 	// In this tutorial, we simply send RPC requests to the node.
-	const { block } = await rpcToLocalNode('chain_getBlock');
-	const blockHash = await rpcToLocalNode('chain_getBlockHash');
-	const genesisHash = await rpcToLocalNode('chain_getBlockHash', [0]);
-	const metadataRpc = await rpcToLocalNode('state_getMetadata');
-	const { specVersion, transactionVersion, specName } = await rpcToLocalNode(
+	const { block } = await rpcToAlephTestnet('chain_getBlock');
+	const blockHash = await rpcToAlephTestnet('chain_getBlockHash');
+	const genesisHash = await rpcToAlephTestnet('chain_getBlockHash', [0]);
+	const metadataRpc = await rpcToAlephTestnet('state_getMetadata');
+	const { specVersion, transactionVersion, specName } = await rpcToAlephTestnet(
 		'state_getRuntimeVersion'
+	);
+	const nonce = await rpcToAlephTestnet('system_accountNextIndex', [deriveAddress(alice.publicKey, PolkadotSS58Format.aleph)]);
+	console.log(
+		"Alice's nonce:",
+		nonce
 	);
 
 	/**
@@ -89,18 +94,19 @@ async function main(): Promise<void> {
 	const unsigned = methods.balances.transferKeepAlive(
 		{
 			value: '10000000000',
-			dest: '14E5nqKAp3oAJcmzgZhUD2RcptBeUBScxKHgJKU4HPNcKVf3', // Bob
+			dest: '5FHneW46xGXgs5mUiveU4sbTyGBzmstUspZC92UhjJM694ty', // Bob
 		},
 		{
-			address: deriveAddress(alice.publicKey, PolkadotSS58Format.polkadot),
+			address: deriveAddress(alice.publicKey, PolkadotSS58Format.aleph),
 			blockHash,
 			blockNumber: registry
 				.createType('BlockNumber', block.header.number)
 				.toNumber(),
+			// Describe the longevity of a transaction. It represents the validity from the `blockHash` field, in number of blocks. Defaults to 64 blocks.
 			eraPeriod: 64,
 			genesisHash,
 			metadataRpc,
-			nonce: 0, // Assuming this is Alice's first tx on the chain
+			nonce: nonce, // Assuming this is Alice's first tx on the chain
 			specVersion,
 			tip: 0,
 			transactionVersion,
@@ -158,7 +164,7 @@ async function main(): Promise<void> {
 	// Send the tx to the node. Again, since `txwrapper` is offline-only, this
 	// operation should be handled externally. Here, we just send a JSONRPC
 	// request directly to the node.
-	const actualTxHash = await rpcToLocalNode('author_submitExtrinsic', [tx]);
+	const actualTxHash = await rpcToAlephTestnet('author_submitExtrinsic', [tx]);
 	console.log(`Actual Tx Hash: ${actualTxHash}`);
 
 	// Decode a signed payload.

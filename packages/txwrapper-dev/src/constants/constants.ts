@@ -103,4 +103,5 @@ export enum PolkadotSS58Format {
 	kusama = 2,
 	westend = 42,
 	substrate = 42,
+	aleph = 42,
 }

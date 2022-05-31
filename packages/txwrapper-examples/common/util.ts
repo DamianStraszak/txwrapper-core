@@ -16,6 +16,37 @@ import fetch from 'node-fetch';
  * @param method - The JSONRPC request method.
  * @param params - The JSONRPC request params.
  */
+
+
+
+export function rpcToAlephTestnet(
+	method: string,
+	params: any[] = []
+): Promise<any> {
+	return fetch('https://rpc.test.azero.dev', {
+		body: JSON.stringify({
+			id: 1,
+			jsonrpc: '2.0',
+			method,
+			params,
+		}),
+		headers: {
+			'Content-Type': 'application/json',
+		},
+		method: 'POST',
+	})
+		.then((response) => response.json())
+		.then(({ error, result }) => {
+			if (error) {
+				throw new Error(
+					`${error.code} ${error.message}: ${JSON.stringify(error.data)}`
+				);
+			}
+
+			return result;
+		});
+}
+
 export function rpcToLocalNode(
 	method: string,
 	params: any[] = []
