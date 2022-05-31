@@ -71,7 +71,7 @@ async function main(): Promise<void> {
 	 * ```
 	 */
 	const registry = getRegistry({
-		chainName: 'Polkadot',
+		chainName: '',
 		specName,
 		specVersion,
 		metadataRpc,
